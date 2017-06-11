@@ -8,7 +8,7 @@
     <artifactId>javacodegen</artifactId>
     <version>1.0.0-SNAPSHOT</version>
 
-    <packaging>jar</packaging>
+    <packaging>maven-plugin</packaging>
     <name>JAVACODEGEN</name>
     <description>Java Code Generator for CaseClasses</description>
     <url>https://github.com/persistentbit/javacodegen.git</url>
@@ -53,6 +53,24 @@
     <build>
 
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-plugin-plugin</artifactId>
+                <version>3.5</version>
+                <executions>
+                    <execution>
+                        <id>default-descriptor</id>
+                        <phase>process-classes</phase>
+                    </execution>
+                    <!-- if you want to generate help goal -->
+                    <!--<execution>
+                        <id>help-goal</id>
+                        <goals>
+                            <goal>helpmojo</goal>
+                        </goals>
+                    </execution> -->
+                </executions>
+            </plugin>
             <!--
             <plugin>
                 <groupId>com.persistentbit</groupId>

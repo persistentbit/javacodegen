@@ -11,6 +11,7 @@ import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
 import com.persistentbit.core.collections.PList;
 import com.persistentbit.core.collections.PStream;
+import com.persistentbit.core.exceptions.ToDo;
 import com.persistentbit.core.io.IO;
 import com.persistentbit.core.io.IOFiles;
 import com.persistentbit.core.io.IORead;
@@ -32,13 +33,13 @@ public class JavaSourceReader{
 
 
 	public static Result<PList<Tuple2<File,JJavaFile>>>	importJavaSourceDirectory(File javaSourceDirectory){
-		return Result.function(javaSourceDirectory).code(l -> {
+		return Result.function(javaSourceDirectory).codeNoResultLog(l -> {
 			return IOFiles.findPathsInTree(javaSourceDirectory.toPath(),IOFiles.fileExtensionPredicate("java")).flatMap(paths -> {
 				l.info("Found " + paths.size() + " Java Source files");
 				return Result.fromSequence(paths.map(path -> {
 					l.info("Importing source " + path);
 					return importJavaSource(path.toFile()).map(javaFile -> Tuple2.of(path.toFile(),javaFile));
-				})).map(pstream -> pstream.plist());
+				})).map(pstream -> pstream.plist()).withLogs(log -> l.add(log));
 			});
 		});
 
@@ -106,9 +107,16 @@ public class JavaSourceReader{
 			if(type instanceof ClassOrInterfaceDeclaration){
 				javaFile = javaFile.addClass(importClass((ClassOrInterfaceDeclaration)type));
 			}
+			if(type instanceof EnumDeclaration){
+				javaFile = javaFile.addEnum(importEnum((EnumDeclaration)type));
+			}
 		}
 		return javaFile;
 	}
+	private static JEnum importEnum(EnumDeclaration e){
+		throw new ToDo("read enum");
+	}
+
 
 	private static PList<JField> importField(FieldDeclaration field){
 		PList<JField> fields = PList.empty();
@@ -122,9 +130,7 @@ public class JavaSourceReader{
 			}
 			AccessLevel accessLevel = getAccessLevel(field.getModifiers());
 			f = f.withAccessLevel(accessLevel);
-			if(isNullable(field.getAnnotations())){
-				f = f.asNullable();
-			}
+
 			//fields = fields.plus(f);
 			if(field.getJavadoc().isPresent()){
 				f = f.javaDoc(field.getJavadoc().get().toComment("").toString());
@@ -144,7 +150,9 @@ public class JavaSourceReader{
 			name = name + "<" + pt + ">";
 		}
 		JClass cls = new JClass(name);
-
+		if(type.getModifiers().contains(Modifier.STATIC)){
+			cls = cls.asStatic();
+		}
 		for(AnnotationExpr ann : type.getAnnotations()){
 			cls = cls.addAnnotation(ann.toString());
 		}
@@ -172,6 +180,9 @@ public class JavaSourceReader{
 				FieldDeclaration field = (FieldDeclaration) member;
 				cls = cls.withFields(cls.getFields().plusAll(importField(field)));
 			}
+			if(member instanceof ClassOrInterfaceDeclaration){
+				cls = cls.addInternalClass(importClass((ClassOrInterfaceDeclaration)member));
+			}
 
 		}
 		return cls;
@@ -188,6 +199,9 @@ public class JavaSourceReader{
 		}
 		if(method.getModifiers().contains(Modifier.FINAL)){
 			m = m.asFinal();
+		}
+		for(AnnotationExpr ann : method.getAnnotations()){
+			m = m.addAnnotation(ann.toString());
 		}
 		for(Parameter param : method.getParameters()){
 			param.getAnnotations();

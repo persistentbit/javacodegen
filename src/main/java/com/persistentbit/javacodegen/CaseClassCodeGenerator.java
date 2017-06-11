@@ -25,8 +25,13 @@ public class CaseClassCodeGenerator{
 				.flatMap(tlist -> {
 					return Result.fromSequence(tlist.map(titem -> {
 						JJavaFile jfile = titem._2;
-						jfile = makeCaseClasses(jfile);
-						return IOFiles.write(jfile.print().printToString(), titem._1, IO.utf8);
+						JJavaFile resultfile = makeCaseClasses(jfile);
+						if(resultfile.equals(jfile)){
+							l.info("Skipping " + titem._1);
+							return Result.success(OK.inst);
+						}
+						l.info("Writing " + titem._1);
+						return IOFiles.write(resultfile.print().printToString(), titem._1, IO.utf8);
 					})).map(pstream -> OK.inst);
 				});
 		});
