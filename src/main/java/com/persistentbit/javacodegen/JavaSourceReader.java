@@ -107,9 +107,9 @@ public class JavaSourceReader{
 			if(type instanceof ClassOrInterfaceDeclaration){
 				javaFile = javaFile.addClass(importClass((ClassOrInterfaceDeclaration)type));
 			}
-			if(type instanceof EnumDeclaration){
+			/*if(type instanceof EnumDeclaration){
 				javaFile = javaFile.addEnum(importEnum((EnumDeclaration)type));
-			}
+			}*/
 		}
 		return javaFile;
 	}

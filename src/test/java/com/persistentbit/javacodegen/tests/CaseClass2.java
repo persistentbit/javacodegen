@@ -5,9 +5,10 @@ import com.persistentbit.core.javacodegen.annotations.CaseClass;
 import com.persistentbit.core.javacodegen.annotations.Generated;
 import com.persistentbit.core.javacodegen.annotations.NoBuilder;
 import com.persistentbit.core.javacodegen.annotations.NoWith;
-import com.persistentbit.core.utils.NoToString;
+import com.persistentbit.core.utils.UString;
 
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * TODOC
@@ -24,7 +25,6 @@ public class CaseClass2 {
 	
 	@CaseClass
 	@NoBuilder
-	@NoToString
 	static public class Name {
 		/**
 		 * The first name of a person
@@ -34,12 +34,15 @@ public class CaseClass2 {
 		 * The last name of a person;
 		 */
 		private  final	String	lastName;
+		@Nullable
+		private  final	String	middleName;
 		
 		
 		@Generated
-		public Name(String firstName, String lastName){
+		public Name(String firstName, String lastName, @Nullable String middleName){
 				this.firstName = Objects.requireNonNull(firstName, "firstName can not be null");
 				this.lastName = Objects.requireNonNull(lastName, "lastName can not be null");
+				this.middleName = middleName;
 		}
 		/**
 		 * Get the value of field {@link #firstName}.<br>
@@ -56,7 +59,7 @@ public class CaseClass2 {
 		 */
 		@Generated
 		public  Name	withFirstName(String firstName){
-			return new Name(firstName, lastName);
+			return new Name(firstName, lastName, middleName);
 		}
 		/**
 		 * Get the value of field {@link #lastName}.<br>
@@ -73,7 +76,24 @@ public class CaseClass2 {
 		 */
 		@Generated
 		public  Name	withLastName(String lastName){
-			return new Name(firstName, lastName);
+			return new Name(firstName, lastName, middleName);
+		}
+		/**
+		 * Get the value of field {@link #middleName}.<br>
+		 * @return {@link #middleName}
+		 */
+		@Generated
+		public  Optional<String>	getMiddleName(){
+			return Optional.ofNullable(this.middleName);
+		}
+		/**
+		 * Create a copy of this Name object with a new value for field {@link #middleName}.<br>
+		 * @param middleName The new value for field {@link #middleName}
+		 * @return A new instance of {@link Name}
+		 */
+		@Generated
+		public  Name	withMiddleName(@Nullable String middleName){
+			return new Name(firstName, lastName, middleName);
 		}
 		@Generated
 		@Override
@@ -83,6 +103,7 @@ public class CaseClass2 {
 			Name obj = (Name)o;
 			if(!firstName.equals(obj.firstName)) return false;
 			if(!lastName.equals(obj.lastName)) return false;
+			if(middleName != null ? !middleName.equals(obj.middleName) : obj.middleName!= null) return false;
 			return true;
 		}
 		@Generated
@@ -91,7 +112,17 @@ public class CaseClass2 {
 			int result;
 			result = (this.firstName != null ? this.firstName.hashCode() : 0);
 			result = 31 * result + (this.lastName != null ? this.lastName.hashCode() : 0);
+			result = 31 * result + (this.middleName != null ? this.middleName.hashCode() : 0);
 			return result;
+		}
+		@Generated
+		@Override
+		public  String	toString(){
+			return "Name[" + 
+				"firstName=" + (firstName == null ? "null" : '\"' + UString.present(UString.escapeToJavaString(firstName),32,"...") + '\"') +
+				", lastName=" + (lastName == null ? "null" : '\"' + UString.present(UString.escapeToJavaString(lastName),32,"...") + '\"') +
+				", middleName=" + (middleName == null ? "null" : '\"' + UString.present(UString.escapeToJavaString(middleName),32,"...") + '\"') +
+				']';
 		}
 	}
 	
@@ -99,6 +130,10 @@ public class CaseClass2 {
 	public CaseClass2(int id, Name name){
 			this.id = id;
 			this.name = Objects.requireNonNull(name, "name can not be null");
+	}
+	public  static void	main(String[] args){
+	    Name m = new Name("hello\nPeter", "test", null);
+	    System.out.println(m);
 	}
 	/**
 	 * Get the value of field {@link #id}.<br>
@@ -137,6 +172,9 @@ public class CaseClass2 {
 	@Generated
 	@Override
 	public  String	toString(){
-		return "CaseClass2";
+		return "CaseClass2[" + 
+			"id=" + id + 
+			", name=" + name + 
+			']';
 	}
 }

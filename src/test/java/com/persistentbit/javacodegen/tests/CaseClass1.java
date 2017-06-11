@@ -5,18 +5,21 @@
 package com.persistentbit.javacodegen.tests;
 
 import com.persistentbit.core.Nullable;
+import com.persistentbit.core.javacodegen.annotations.NoWith;
 import com.persistentbit.core.javacodegen.annotations.CaseClass;
-import com.persistentbit.core.javacodegen.annotations.DefaultValue;
-import com.persistentbit.core.javacodegen.annotations.Generated;
-import com.persistentbit.core.utils.BaseValueClass;
-import com.persistentbit.core.utils.NoToString;
 import com.persistentbit.core.utils.builders.NOT;
-import com.persistentbit.core.utils.builders.SET;
-
+import java.util.Optional;
+import java.lang.SuppressWarnings;
+import com.persistentbit.core.utils.UString;
+import com.persistentbit.core.utils.BaseValueClass;
 import java.io.Serializable;
 import java.util.Arrays;
+import com.persistentbit.core.javacodegen.annotations.NoGet;
 import java.util.Objects;
-import java.util.Optional;
+import com.persistentbit.core.utils.NoToString;
+import com.persistentbit.core.utils.builders.SET;
+import com.persistentbit.core.javacodegen.annotations.DefaultValue;
+import com.persistentbit.core.javacodegen.annotations.Generated;
 import java.util.function.Function;
 
 @CaseClass
@@ -381,7 +384,18 @@ public class CaseClass1 extends BaseValueClass implements Serializable {
 	@Generated
 	@Override
 	public  String	toString(){
-		return "CaseClass1";
+		return "CaseClass1[" + 
+			"primInt=" + primInt + 
+			", primBoolean=" + primBoolean + 
+			", primChar=" + primChar + 
+			", primShort=" + primShort + 
+			", primByte=" + primByte + 
+			", aString=" + (aString == null ? "null" : '\"' + UString.present(UString.escapeToJavaString(aString),32,"...") + '\"') +
+			", nulString=" + (nulString == null ? "null" : '\"' + UString.present(UString.escapeToJavaString(nulString),32,"...") + '\"') +
+			", primDouble=" + primDouble + 
+			", primFloat=" + primFloat + 
+			", nulDouble=" + nulDouble + 
+			']';
 	}
 	@Generated
 	public  CaseClass1	updated(Function<Builder,Builder> updater){
