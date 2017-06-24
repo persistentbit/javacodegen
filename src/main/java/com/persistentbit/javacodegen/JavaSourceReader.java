@@ -17,9 +17,9 @@ import com.persistentbit.core.io.IOFiles;
 import com.persistentbit.core.io.IORead;
 import com.persistentbit.core.javacodegen.*;
 import com.persistentbit.core.result.Result;
-import com.persistentbit.core.tuples.Tuple2;
+import com.persistentbit.core.utils.UString;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.Optional;
 
@@ -32,28 +32,46 @@ import java.util.Optional;
 public class JavaSourceReader{
 
 
-	public static Result<PList<Tuple2<File,JJavaFile>>>	importJavaSourceDirectory(File javaSourceDirectory){
+	/*public static Result<PList<Tuple2<File,JJavaFile>>>	importJavaSourceDirectory(File javaSourceDirectory){
 		return Result.function(javaSourceDirectory).codeNoResultLog(l -> {
 			return IOFiles.findPathsInTree(javaSourceDirectory.toPath(),IOFiles.fileExtensionPredicate("java")).flatMap(paths -> {
 				l.info("Found " + paths.size() + " Java Source files");
-				return Result.fromSequence(paths.map(path -> {
+				PList<Tuple2<File,JJavaFile>> res = PList.empty();
+				for(Path path : paths){
 					l.info("Importing source " + path);
-					return importJavaSource(path.toFile()).map(javaFile -> Tuple2.of(path.toFile(),javaFile));
-				})).map(pstream -> pstream.plist()).withLogs(log -> l.add(log));
+					Result<JJavaFile> jf = importJavaSource(path.toFile());
+					if(jf.isPresent()){
+						res = res.plus(Tuple2.of(path.toFile(),jf.orElseThrow()));
+					} else {
+						l.add(jf);
+					}
+				}
+				return Result.success(res);
 			});
 		});
 
+	}*/
+
+
+	public static Result<PList<Path>> findSourceFiles(Path javaSourceDirectory){
+		return IOFiles.findPathsInTree(javaSourceDirectory,IOFiles.fileExtensionPredicate("java"));
 	}
 
-	public static Result<JJavaFile>	importJavaSource(File javaSourceFile){
-		return Result.function(javaSourceFile).code(l -> {
-			return IORead.readTextFile(javaSourceFile,IO.utf8)
-				.map(src -> {
-					CompilationUnit              cu     = JavaParser.parse(src);
-					JJavaFile javaFile = importJavaFile(cu);
+	public static Result<JJavaFile>	importJavaSource(Path javaSourceFile){
+		return Result.function(javaSourceFile).code(l ->
+			IORead.readTextFile(javaSourceFile.toFile(),IO.utf8)
+				  .flatMap(src -> parseJava(javaSourceFile.toString(),src))
+				  .flatMap(JavaSourceReader::importJavaFile)
+		);
+	}
 
-					return javaFile;
-				});
+	private static Result<CompilationUnit> parseJava(String sourceName, String code){
+		return Result.function(sourceName, UString.presentEscaped(code,40)).codePresentResult(l -> {
+			try{
+				return Result.success(JavaParser.parse(code));
+			}catch(Exception e){
+				return Result.failure(e);
+			}
 		});
 	}
 
@@ -92,26 +110,29 @@ public class JavaSourceReader{
 			.isPresent();
 	}
 
-	private static JJavaFile importJavaFile(CompilationUnit cu){
-		NodeList<TypeDeclaration<?>> types    = cu.getTypes();
-		JJavaFile                    javaFile = new JJavaFile(cu.getPackageDeclaration().map(pd -> pd.getNameAsString()).orElse(""));
+	private static Result<JJavaFile> importJavaFile(CompilationUnit cu){
+		return Result.function(cu).code(l -> {
+			NodeList<TypeDeclaration<?>> types    = cu.getTypes();
+			JJavaFile                    javaFile = new JJavaFile(cu.getPackageDeclaration().map(pd -> pd.getNameAsString()).orElse(""));
 
 
-		if(cu.getComment().isPresent()){
-			javaFile = javaFile.withDoc(cu.getComment().get().toString());
-		}
-		for(ImportDeclaration imp : cu.getImports()){
-			javaFile = javaFile.addImport(new JImport(imp.getNameAsString(), imp.isStatic()));
-		}
-		for (TypeDeclaration<?> type : types) {
-			if(type instanceof ClassOrInterfaceDeclaration){
-				javaFile = javaFile.addClass(importClass((ClassOrInterfaceDeclaration)type));
+			if(cu.getComment().isPresent()){
+				javaFile = javaFile.withDoc(cu.getComment().get().toString());
 			}
+			for(ImportDeclaration imp : cu.getImports()){
+				javaFile = javaFile.addImport(new JImport(imp.getNameAsString(), imp.isStatic()));
+			}
+			for (TypeDeclaration<?> type : types) {
+				if(type instanceof ClassOrInterfaceDeclaration){
+					javaFile = javaFile.addClass(importClass((ClassOrInterfaceDeclaration)type));
+				}
 			/*if(type instanceof EnumDeclaration){
 				javaFile = javaFile.addEnum(importEnum((EnumDeclaration)type));
 			}*/
-		}
-		return javaFile;
+			}
+			return Result.success(javaFile);
+		});
+
 	}
 	private static JEnum importEnum(EnumDeclaration e){
 		throw new ToDo("read enum");

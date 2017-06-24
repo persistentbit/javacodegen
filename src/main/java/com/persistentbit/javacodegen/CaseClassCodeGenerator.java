@@ -1,15 +1,14 @@
 package com.persistentbit.javacodegen;
 
-import com.persistentbit.core.ModuleCore;
 import com.persistentbit.core.OK;
+import com.persistentbit.core.collections.PList;
 import com.persistentbit.core.io.IO;
 import com.persistentbit.core.io.IOFiles;
 import com.persistentbit.core.javacodegen.JClass;
 import com.persistentbit.core.javacodegen.JJavaFile;
-import com.persistentbit.core.logging.printing.LogPrint;
 import com.persistentbit.core.result.Result;
 
-import java.io.File;
+import java.nio.file.Path;
 
 /**
  * TODOC
@@ -19,27 +18,67 @@ import java.io.File;
  */
 public class CaseClassCodeGenerator{
 
-	public static Result<OK>	generateCaseClasses(File sourceDirPath){
-		return Result.function(sourceDirPath).code(l -> {
-			return JavaSourceReader.importJavaSourceDirectory(sourceDirPath)
-				.flatMap(tlist -> {
-					return Result.fromSequence(tlist.map(titem -> {
-						JJavaFile jfile = titem._2;
-						JJavaFile resultfile = makeCaseClasses(jfile);
-						if(resultfile.equals(jfile)){
-							l.info("Skipping " + titem._1);
-							return Result.success(OK.inst);
-						}
-						l.info("Writing " + titem._1);
-						return IOFiles.write(resultfile.print().printToString(), titem._1, IO.utf8);
-					})).map(pstream -> OK.inst);
-				});
-		});
+	/**
+	 * The Result of regenerating the case classes in a java source file file.<br>
+	 * The Result is empty if no case class was found, otherwise OK if regenerated or Empty if no case classes where found
+	 */
+	public static class CaseClassGenResult{
+		private final Path file;
+		private final Result<OK>	result;
+
+		public CaseClassGenResult(Path file, Result<OK> result) {
+			this.file = file;
+			this.result = result;
+		}
+
+		public Path getFile() {
+			return file;
+		}
+
+		public Result<OK> getResult() {
+			return result;
+		}
 	}
 
-	private static JJavaFile	makeCaseClasses(JJavaFile javaFile){
-		return javaFile
-			.withClasses(javaFile.getClasses().map(CaseClassCodeGenerator::makeCaseClass));
+	/**
+	 * (Re)generate all java source files found in the given directory tree.
+	 * @param sourceDirPath Root of the source dir
+	 * @return Result of a list with {@link CaseClassGenResult}
+	 */
+	public static Result<PList<CaseClassGenResult>> makeCaseClassesRecursive(Path sourceDirPath){
+		return Result.function(sourceDirPath).codePresentResult(l ->
+			JavaSourceReader.findSourceFiles(sourceDirPath)
+				.map(paths ->
+					paths.map(CaseClassCodeGenerator::makeCaseClass)
+				)
+		);
+	}
+
+	/**
+	 * Parse and regenerate the case classes for a given java source file
+	 * @param sourceFilePath Path to the java source file
+	 * @return A {@link CaseClassGenResult}
+	 */
+	public static CaseClassGenResult	makeCaseClass(Path sourceFilePath){
+		Result<OK> resOK = JavaSourceReader.importJavaSource(sourceFilePath)
+			.flatMap(orgJFile -> makeCaseClasses(orgJFile)
+				.flatMap(newJFile -> {
+					if(newJFile.equals(orgJFile)){
+						return Result.empty("Nog Case classes to convert");
+					} else {
+						return IOFiles.write(newJFile.print().printToString(),sourceFilePath.toFile(), IO.utf8);
+					}
+				}));
+		return new CaseClassGenResult(sourceFilePath,resOK);
+	}
+
+
+	private static Result<JJavaFile>	makeCaseClasses(JJavaFile javaFile){
+		return Result.function(javaFile).code(l -> {
+			return Result.success(javaFile
+				.withClasses(javaFile.getClasses().map(CaseClassCodeGenerator::makeCaseClass))
+			);
+		});
 	}
 
 	private static JClass makeCaseClass(JClass cls){
@@ -50,9 +89,5 @@ public class CaseClassCodeGenerator{
 		return cls.makeCaseClass();
 	}
 
-	public static void main(String[] args) {
-		LogPrint lp = ModuleCore.consoleLogPrint.registerAsGlobalHandler();
-		File srcDir = new File("/Users/petermuys/feniks/persistentbit/javacodegen/src/test/java/com/persistentbit/javacodegen/tests");
-		generateCaseClasses(srcDir).withLogs(log -> lp.print(log)).orElseThrow();
-	}
+
 }

@@ -1,6 +1,10 @@
 package com.persistentbit.javacodegen.maven;
 
 
+import com.github.javaparser.ParseProblemException;
+import com.github.javaparser.Problem;
+import com.persistentbit.core.collections.PList;
+import com.persistentbit.core.logging.printing.LogPrintToString;
 import com.persistentbit.javacodegen.CaseClassCodeGenerator;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -34,12 +38,33 @@ public class CaseClassMojo extends AbstractMojo{
 	public void execute()  throws MojoExecutionException, MojoFailureException {
 		try{
 			project.getCompileSourceRoots().stream().forEach(srcRoot -> {
+
 				File srcRootFile = new File(srcRoot);
-				CaseClassCodeGenerator.generateCaseClasses(srcRootFile).orElseThrow();
+
+				PList<CaseClassCodeGenerator.CaseClassGenResult> result =
+					CaseClassCodeGenerator.makeCaseClassesRecursive(srcRootFile.toPath()).orElseThrow();
+
+				result.filter(res -> res.getResult().isEmpty() == false).forEach(ccGenResult -> {
+					ccGenResult.getResult().ifFailure(fail -> {
+						if(fail.getException() instanceof ParseProblemException){
+							ParseProblemException parseProblem = (ParseProblemException)fail.getException();
+							for(Problem problem : parseProblem.getProblems()){
+								getLog().error("Error reading source " + ccGenResult.getFile() + ": " + problem.getVerboseMessage());
+							}
+						} else {
+							getLog().error("Failed converting " + ccGenResult.getFile(), fail.getException());
+						}
+					}).ifPresent(success -> {
+						getLog().info("Regenerated " + ccGenResult.getFile());
+					});
+
+				});
 			});
-		}catch(Exception e){
-			getLog().error("General error",e);
-			throw new MojoExecutionException("Error while generating code:" + e.getMessage(),e);
+		}catch(Exception le){
+			LogPrintToString lp = new LogPrintToString();
+			lp.print(le);
+			getLog().error(lp.getLogString());
+			throw new MojoExecutionException("Error while generating code:" + le.getMessage());
 		}
 		project.getCompileSourceRoots().stream()
 			.forEach(srcRoot -> getLog().info("Got src root " + srcRoot));
