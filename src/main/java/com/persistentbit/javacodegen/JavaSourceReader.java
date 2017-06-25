@@ -159,6 +159,9 @@ public class JavaSourceReader{
 			for(AnnotationExpr ann : field.getAnnotations()){
 				f = f.addAnnotation(ann.toString());
 			}
+			if(var.getInitializer().isPresent()){
+				f = f.initValue(var.getInitializer().get().toString());
+			}
 			fields = fields.plus(f);
 		}
 		return fields;
