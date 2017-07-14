@@ -207,6 +207,9 @@ public class JavaSourceReader{
 			if(member instanceof ClassOrInterfaceDeclaration){
 				cls = cls.addInternalClass(importClass((ClassOrInterfaceDeclaration)member));
 			}
+			if(member instanceof ConstructorDeclaration){
+				cls = cls.addMethod(importConstructor((ConstructorDeclaration)member));
+			}
 
 		}
 		return cls;
@@ -224,6 +227,28 @@ public class JavaSourceReader{
 		if(method.getModifiers().contains(Modifier.FINAL)){
 			m = m.asFinal();
 		}
+		for(AnnotationExpr ann : method.getAnnotations()){
+			m = m.addAnnotation(ann.toString());
+		}
+		for(Parameter param : method.getParameters()){
+			param.getAnnotations();
+			param.getNameAsString();
+			param.getType();
+			JArgument arg = new JArgument(param.getType().asString(),param.getNameAsString());
+			for(AnnotationExpr ann : param.getAnnotations()){
+				arg = arg.addAnnotation(ann.toString());
+			}
+			m = m.addArg(arg);
+		}
+		return m;
+	}
+	private static JMethod importConstructor(ConstructorDeclaration method){
+		JMethod m = new JMethod(method.getNameAsString());
+		m = m.withAccessLevel(getAccessLevel(method.getModifiers()));
+
+		String code = method.getBody().toString();
+		m = m.withFullCode(code);
+
 		for(AnnotationExpr ann : method.getAnnotations()){
 			m = m.addAnnotation(ann.toString());
 		}
